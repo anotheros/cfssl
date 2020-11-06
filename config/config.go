@@ -2,8 +2,8 @@
 package config
 
 import (
-	"crypto/tls"
-	"crypto/x509"
+	"github.com/anotheros/cryptogm/tls"
+	"github.com/anotheros/cryptogm/x509"
 	"encoding/asn1"
 	"encoding/json"
 	"errors"

@@ -8,8 +8,9 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rsa"
-	"crypto/tls"
-	"crypto/x509"
+	"github.com/anotheros/cryptogm/tls"
+	"github.com/anotheros/cryptogm/sm2"
+	"github.com/anotheros/cryptogm/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
@@ -30,7 +31,6 @@ import (
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	"github.com/cloudflare/cfssl/log"
-	"golang.org/x/crypto/pkcs12"
 )
 
 // OneYear is a time.Duration representing a year's worth of seconds.
@@ -146,6 +146,8 @@ func SignatureString(alg x509.SignatureAlgorithm) string {
 		return "ECDSAWithSHA384"
 	case x509.ECDSAWithSHA512:
 		return "ECDSAWithSHA512"
+	case x509.SM2WithSM3:
+		return "SM2WithSM3"
 	default:
 		return "Unknown Signature"
 	}
@@ -179,6 +181,8 @@ func HashAlgoString(alg x509.SignatureAlgorithm) string {
 		return "SHA384"
 	case x509.ECDSAWithSHA512:
 		return "SHA512"
+	case x509.SM2WithSM3:
+		return "SM3"
 	default:
 		return "Unknown Hash Algorithm"
 	}
@@ -239,34 +243,6 @@ func ParseCertificatesPEM(certsPEM []byte) ([]*x509.Certificate, error) {
 	return certs, nil
 }
 
-// ParseCertificatesDER parses a DER encoding of a certificate object and possibly private key,
-// either PKCS #7, PKCS #12, or raw x509.
-func ParseCertificatesDER(certsDER []byte, password string) (certs []*x509.Certificate, key crypto.Signer, err error) {
-	certsDER = bytes.TrimSpace(certsDER)
-	pkcs7data, err := pkcs7.ParsePKCS7(certsDER)
-	if err != nil {
-		var pkcs12data interface{}
-		certs = make([]*x509.Certificate, 1)
-		pkcs12data, certs[0], err = pkcs12.Decode(certsDER, password)
-		if err != nil {
-			certs, err = x509.ParseCertificates(certsDER)
-			if err != nil {
-				return nil, nil, cferr.New(cferr.CertificateError, cferr.DecodeFailed)
-			}
-		} else {
-			key = pkcs12data.(crypto.Signer)
-		}
-	} else {
-		if pkcs7data.ContentInfo != "SignedData" {
-			return nil, nil, cferr.Wrap(cferr.CertificateError, cferr.DecodeFailed, errors.New("can only extract certificates from signed data content info"))
-		}
-		certs = pkcs7data.Content.SignedData.Certificates
-	}
-	if certs == nil {
-		return nil, key, cferr.New(cferr.CertificateError, cferr.DecodeFailed)
-	}
-	return certs, key, nil
-}
 
 // ParseSelfSignedCertificatePEM parses a PEM-encoded certificate and check if it is self-signed.
 func ParseSelfSignedCertificatePEM(certPEM []byte) (*x509.Certificate, error) {
@@ -463,6 +439,10 @@ func SignerAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 		default:
 			return x509.ECDSAWithSHA1
 		}
+	case *sm2.PublicKey:
+
+			return x509.SM2WithSM3
+
 	default:
 		return x509.UnknownSignatureAlgorithm
 	}

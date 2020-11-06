@@ -5,6 +5,7 @@ go 1.13
 require (
 	bitbucket.org/liamstask/goose v0.0.0-20150115234039-8488cc47d90c
 	github.com/GeertJohan/go.rice v1.0.0
+	github.com/anotheros/cryptogm v0.0.0-20201105080941-6ee08b7d5085
 	github.com/certifi/gocertifi v0.0.0-20180118203423-deb3ae2ef261 // indirect
 	github.com/cloudflare/backoff v0.0.0-20161212185259-647f3cdfc87a
 	github.com/cloudflare/go-metrics v0.0.0-20151117154305-6a9aea36fb41

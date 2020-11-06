@@ -1,7 +1,7 @@
 package errors
 
 import (
-	"crypto/x509"
+	"github.com/anotheros/cryptogm/x509"
 	"encoding/json"
 	"fmt"
 )

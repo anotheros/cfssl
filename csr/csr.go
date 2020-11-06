@@ -7,14 +7,14 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/x509"
+	"github.com/anotheros/cryptogm/sm2"
+	"github.com/anotheros/cryptogm/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
 	"errors"
 	"net"
 	"net/mail"
-	"net/url"
 	"strings"
 
 	cferr "github.com/cloudflare/cfssl/errors"
@@ -64,6 +64,8 @@ func (kr *KeyRequest) Size() int {
 func (kr *KeyRequest) Generate() (crypto.PrivateKey, error) {
 	log.Debugf("generate key from request: algo=%s, size=%d", kr.Algo(), kr.Size())
 	switch kr.Algo() {
+	case "sm2":
+		return sm2.GenerateKey(rand.Reader)
 	case "rsa":
 		if kr.Size() < 2048 {
 			return nil, errors.New("RSA key is too weak")
@@ -116,6 +118,8 @@ func (kr *KeyRequest) SigAlgo() x509.SignatureAlgorithm {
 		default:
 			return x509.ECDSAWithSHA1
 		}
+	case "sm2":
+		return x509.SM2WithSM3
 	default:
 		return x509.UnknownSignatureAlgorithm
 	}
@@ -261,9 +265,6 @@ func getHosts(cert *x509.Certificate) []string {
 	for _, email := range cert.EmailAddresses {
 		hosts = append(hosts, email)
 	}
-	for _, uri := range cert.URIs {
-		hosts = append(hosts, uri.String())
-	}
 
 	return hosts
 }
@@ -375,8 +376,6 @@ func Generate(priv crypto.Signer, req *CertificateRequest) (csr []byte, err erro
 			tpl.IPAddresses = append(tpl.IPAddresses, ip)
 		} else if email, err := mail.ParseAddress(req.Hosts[i]); err == nil && email != nil {
 			tpl.EmailAddresses = append(tpl.EmailAddresses, email.Address)
-		} else if uri, err := url.ParseRequestURI(req.Hosts[i]); err == nil && uri != nil {
-			tpl.URIs = append(tpl.URIs, uri)
 		} else {
 			tpl.DNSNames = append(tpl.DNSNames, req.Hosts[i])
 		}
